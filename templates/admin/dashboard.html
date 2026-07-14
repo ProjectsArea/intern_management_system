@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard{% endblock %}
+{% block page_title %}Admin Dashboard{% endblock %}
+{% block page_subtitle %}Overview of interns, mentors, and program health{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-3">
+  <div class="col-md-6 col-xl-3">
+    <div class="stat-card d-flex justify-content-between align-items-start">
+      <div><div class="stat-label">Total Interns</div><div class="stat-value">{{ total_interns }}</div></div>
+      <div class="stat-icon"><i class="bi bi-people"></i></div>
+    </div>
+  </div>
+  <div class="col-md-6 col-xl-3">
+    <div class="stat-card d-flex justify-content-between align-items-start">
+      <div><div class="stat-label">Active Interns</div><div class="stat-value">{{ active_interns }}</div></div>
+      <div class="stat-icon"><i class="bi bi-person-check"></i></div>
+    </div>
+  </div>
+  <div class="col-md-6 col-xl-3">
+    <div class="stat-card d-flex justify-content-between align-items-start">
+      <div><div class="stat-label">Completed Interns</div><div class="stat-value">{{ completed_interns }}</div></div>
+      <div class="stat-icon"><i class="bi bi-award"></i></div>
+    </div>
+  </div>
+  <div class="col-md-6 col-xl-3">
+    <div class="stat-card d-flex justify-content-between align-items-start">
+      <div><div class="stat-label">Total Mentors</div><div class="stat-value">{{ total_mentors }}</div></div>
+      <div class="stat-icon"><i class="bi bi-person-badge"></i></div>
+    </div>
+  </div>
+  <div class="col-md-6 col-xl-3">
+    <div class="stat-card d-flex justify-content-between align-items-start">
+      <div><div class="stat-label">Projects</div><div class="stat-value">{{ total_projects }}</div></div>
+      <div class="stat-icon"><i class="bi bi-kanban"></i></div>
+    </div>
+  </div>
+  <div class="col-md-6 col-xl-3">
+    <div class="stat-card d-flex justify-content-between align-items-start">
+      <div><div class="stat-label">Attendance %</div><div class="stat-value">{{ attendance_pct }}%</div></div>
+      <div class="stat-icon"><i class="bi bi-calendar-check"></i></div>
+    </div>
+  </div>
+  <div class="col-md-6 col-xl-3">
+    <div class="stat-card d-flex justify-content-between align-items-start">
+      <div><div class="stat-label">Pending Tasks</div><div class="stat-value">{{ pending_tasks }}</div></div>
+      <div class="stat-icon"><i class="bi bi-hourglass-split"></i></div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-6">
+    <div class="panel">
+      <div class="panel-title">Interns by Branch</div>
+      <div class="chart-wrap"><canvas id="branchChart" data-label="Interns"></canvas></div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="panel">
+      <div class="panel-title">Monthly Joinings</div>
+      <div class="chart-wrap"><canvas id="monthChart" data-label="Joinings"></canvas></div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="panel">
+      <div class="panel-title">Attendance</div>
+      <div class="chart-wrap"><canvas id="attChart" data-label="Attendance"></canvas></div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="panel">
+      <div class="panel-title">Project Distribution</div>
+      <div class="chart-wrap"><canvas id="projectChart" data-label="Projects"></canvas></div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="panel">
+      <div class="panel-title">Task Completion</div>
+      <div class="chart-wrap"><canvas id="taskChart" data-label="Tasks"></canvas></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  createChart("branchChart", "bar", {{ branch_labels|tojson }}, {{ branch_values|tojson }});
+  createChart("monthChart", "line", {{ month_labels|tojson }}, {{ month_values|tojson }});
+  createChart("attChart", "pie", {{ att_labels|tojson }}, {{ att_values|tojson }});
+  createChart("projectChart", "doughnut", {{ tech_labels|tojson }}, {{ tech_values|tojson }});
+  createChart("taskChart", "doughnut", {{ task_labels|tojson }}, {{ task_values|tojson }});
+</script>
+{% endblock %}

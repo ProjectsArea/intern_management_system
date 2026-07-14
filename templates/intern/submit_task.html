@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% from "macros.html" import render_field %}
+{% block title %}Submit Task{% endblock %}
+{% block page_title %}Submit Task{% endblock %}
+
+{% block content %}
+<div class="panel" style="max-width:720px;">
+  <h5 class="mb-1">{{ task.title }}</h5>
+  <p class="text-muted">{{ task.description }}</p>
+  <p class="small mb-3">Deadline: {{ task.deadline.strftime('%d %b %Y') }}</p>
+  <form method="POST" novalidate>
+    {{ form.hidden_tag() }}
+    {{ render_field(form.github_link) }}
+    {{ render_field(form.remarks) }}
+    <div class="d-flex gap-2">
+      {{ form.submit(class="btn btn-primary") }}
+      <a href="{{ url_for('intern.tasks') }}" class="btn btn-outline-secondary">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

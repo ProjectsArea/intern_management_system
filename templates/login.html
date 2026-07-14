@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% from "macros.html" import render_field %}
+
+{% block title %}Login{% endblock %}
+
+{% block public_content %}
+<div class="login-page">
+  <div class="login-card">
+    <div class="login-header">
+      <h1><i class="bi bi-briefcase-fill"></i> InternHub</h1>
+      <p>Smart Intern Management System</p>
+    </div>
+    <div class="login-body">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category }} py-2">{{ message }}</div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <form method="POST" novalidate>
+        {{ form.hidden_tag() }}
+        {{ render_field(form.email) }}
+        {{ render_field(form.password) }}
+        {{ form.submit(class="btn btn-primary w-100") }}
+      </form>
+
+      <div class="mt-4 small text-muted">
+        <strong>Demo accounts</strong>
+        <ul class="mb-0 ps-3">
+          <li>admin@internhub.com / admin123</li>
+          <li>mentor@internhub.com / mentor123</li>
+          <li>intern@internhub.com / intern123</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

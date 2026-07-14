@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% from "macros.html" import pagination_widget %}
+{% block title %}Mentors{% endblock %}
+{% block page_title %}Mentors{% endblock %}
+{% block page_subtitle %}Add, edit, and manage mentor profiles{% endblock %}
+
+{% block content %}
+<div class="panel">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <form class="row g-2" method="GET">
+      <div class="col-auto"><input class="form-control form-control-sm" name="q" value="{{ q }}" placeholder="Search mentor"></div>
+      <div class="col-auto"><input class="form-control form-control-sm" name="department" value="{{ department }}" placeholder="Department"></div>
+      <div class="col-auto"><button class="btn btn-sm btn-primary">Search</button></div>
+    </form>
+    <a href="{{ url_for('admin.add_mentor') }}" class="btn btn-sm btn-primary"><i class="bi bi-plus-lg"></i> Add Mentor</a>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead>
+        <tr>
+          <th>Name</th><th>Email</th><th>Department</th><th>Designation</th><th>Experience</th><th>Phone</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in mentors %}
+        <tr>
+          <td>{{ m.user.name }}</td>
+          <td>{{ m.user.email }}</td>
+          <td>{{ m.department }}</td>
+          <td>{{ m.designation }}</td>
+          <td>{{ m.experience }} yrs</td>
+          <td>{{ m.phone }}</td>
+          <td class="text-end">
+            <a class="btn btn-sm btn-outline-primary" href="{{ url_for('admin.edit_mentor', mentor_id=m.id) }}"><i class="bi bi-pencil"></i></a>
+            <form class="d-inline" method="POST" action="{{ url_for('admin.delete_mentor', mentor_id=m.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-sm btn-outline-danger" data-confirm="Delete this mentor?"><i class="bi bi-trash"></i></button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="text-center text-muted py-4">No mentors found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {{ pagination_widget(pagination, 'admin.mentors') }}
+</div>
+{% endblock %}

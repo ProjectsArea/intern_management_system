@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% from "macros.html" import status_badge %}
+{% block title %}Mentor Dashboard{% endblock %}
+{% block page_title %}Mentor Dashboard{% endblock %}
+{% block page_subtitle %}Track your interns, tasks, and reviews{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-3">
+  <div class="col-md-6 col-xl-3"><div class="stat-card"><div class="stat-label">Assigned Interns</div><div class="stat-value">{{ total_interns }}</div></div></div>
+  <div class="col-md-6 col-xl-3"><div class="stat-card"><div class="stat-label">Active Interns</div><div class="stat-value">{{ active_interns }}</div></div></div>
+  <div class="col-md-6 col-xl-3"><div class="stat-card"><div class="stat-label">Total Tasks</div><div class="stat-value">{{ total_tasks }}</div></div></div>
+  <div class="col-md-6 col-xl-3"><div class="stat-card"><div class="stat-label">Pending Reviews</div><div class="stat-value">{{ pending_reviews }}</div></div></div>
+</div>
+<div class="row g-3">
+  <div class="col-lg-5">
+    <div class="panel">
+      <div class="panel-title">Task Status</div>
+      <div class="chart-wrap"><canvas id="mentorTaskChart" data-label="Tasks"></canvas></div>
+      <p class="small text-muted mt-2 mb-0">Attendance for your interns: <strong>{{ attendance_pct }}%</strong></p>
+    </div>
+  </div>
+  <div class="col-lg-7">
+    <div class="panel">
+      <div class="panel-title">Upcoming / Recent Tasks</div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead><tr><th>Task</th><th>Intern</th><th>Deadline</th><th>Status</th></tr></thead>
+          <tbody>
+            {% for t in recent_tasks %}
+            <tr>
+              <td>{{ t.title }}</td>
+              <td>{{ t.intern.user.name }}</td>
+              <td>{{ t.deadline.strftime('%d %b %Y') }}</td>
+              <td>{{ status_badge(t.status) }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4" class="text-center text-muted py-4">No tasks yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  createChart("mentorTaskChart", "doughnut", {{ task_labels|tojson }}, {{ task_values|tojson }});
+</script>
+{% endblock %}

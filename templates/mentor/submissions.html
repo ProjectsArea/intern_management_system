@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% from "macros.html" import pagination_widget, status_badge %}
+{% block title %}Submissions{% endblock %}
+{% block page_title %}Task Submissions{% endblock %}
+{% block page_subtitle %}Review GitHub submissions from interns{% endblock %}
+
+{% block content %}
+<div class="panel">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead><tr><th>Task</th><th>Intern</th><th>GitHub</th><th>Remarks</th><th>Submitted</th><th>Status</th><th>Action</th></tr></thead>
+      <tbody>
+        {% for s in submissions %}
+        <tr>
+          <td>{{ s.task.title }}</td>
+          <td>{{ s.intern.user.name }}</td>
+          <td><a href="{{ s.github_link }}" target="_blank">Repository</a></td>
+          <td>{{ s.remarks or '-' }}</td>
+          <td>{{ s.submitted_date.strftime('%d %b %Y %H:%M') }}</td>
+          <td>{{ status_badge(s.status) }}</td>
+          <td>
+            {% if s.status == 'submitted' %}
+            <form method="POST" action="{{ url_for('mentor.review_submission', submission_id=s.id) }}" class="d-inline">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button name="action" value="approved" class="btn btn-sm btn-success">Approve</button>
+              <button name="action" value="rejected" class="btn btn-sm btn-outline-danger">Reject</button>
+            </form>
+            {% else %}
+            <span class="text-muted small">Reviewed</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="text-center text-muted py-4">No submissions yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {{ pagination_widget(pagination, 'mentor.submissions') }}
+</div>
+{% endblock %}

@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% from "macros.html" import render_field, render_select, pagination_widget, status_badge %}
+{% block title %}Tasks{% endblock %}
+{% block page_title %}Daily Tasks{% endblock %}
+{% block page_subtitle %}Create tasks and update their status{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="panel">
+      <div class="panel-title">Create Task</div>
+      <form method="POST" novalidate>
+        {{ form.hidden_tag() }}
+        {{ render_select(form.intern_id) }}
+        {{ render_field(form.title) }}
+        {{ render_field(form.description) }}
+        {{ render_field(form.deadline) }}
+        {{ render_select(form.status) }}
+        {{ form.submit(class="btn btn-primary w-100") }}
+      </form>
+    </div>
+  </div>
+  <div class="col-lg-8">
+    <div class="panel">
+      <form class="row g-2 mb-3" method="GET">
+        <div class="col-auto"><input class="form-control form-control-sm" name="q" value="{{ q }}" placeholder="Search task"></div>
+        <div class="col-auto">
+          <select class="form-select form-select-sm" name="status">
+            <option value="">All</option>
+            {% for s in ['pending','in_progress','submitted','approved','rejected'] %}
+            <option value="{{ s }}" {% if status==s %}selected{% endif %}>{{ s|replace('_',' ')|title }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-auto"><button class="btn btn-sm btn-primary">Filter</button></div>
+      </form>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead><tr><th>Task</th><th>Intern</th><th>Deadline</th><th>Status</th><th>Update</th></tr></thead>
+          <tbody>
+            {% for t in tasks %}
+            <tr>
+              <td>{{ t.title }}</td>
+              <td>{{ t.intern.user.name }}</td>
+              <td>{{ t.deadline.strftime('%d %b %Y') }}</td>
+              <td>{{ status_badge(t.status) }}</td>
+              <td>
+                <form method="POST" action="{{ url_for('mentor.update_task_status', task_id=t.id) }}" class="d-flex gap-1">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <select name="status" class="form-select form-select-sm">
+                    {% for s in ['pending','in_progress','submitted','approved','rejected'] %}
+                    <option value="{{ s }}" {% if t.status==s %}selected{% endif %}>{{ s|replace('_',' ')|title }}</option>
+                    {% endfor %}
+                  </select>
+                  <button class="btn btn-sm btn-outline-primary">Save</button>
+                </form>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" class="text-center text-muted py-4">No tasks found.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {{ pagination_widget(pagination, 'mentor.tasks') }}
+    </div>
+  </div>
+</div>
+{% endblock %}

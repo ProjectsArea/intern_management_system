@@ -1,0 +1,12 @@
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.env
+instance/*.db
+static/uploads/profiles/*
+static/uploads/resumes/*
+static/uploads/certificates/*
+!static/uploads/**/.gitkeep
+.DS_Store
+*.log

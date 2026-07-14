@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Reports{% endblock %}
+{% block page_title %}Reports{% endblock %}
+{% block page_subtitle %}Export CSV and PDF reports for management review{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+  <div class="col-md-6 col-xl-3">
+    <div class="panel h-100">
+      <div class="panel-title">Intern List</div>
+      <p class="text-muted small">Complete intern directory with mentor mapping.</p>
+      <div class="d-flex gap-2">
+        <a class="btn btn-sm btn-primary" href="{{ url_for('admin.export_interns_csv') }}"><i class="bi bi-filetype-csv"></i> CSV</a>
+        <a class="btn btn-sm btn-outline-primary" href="{{ url_for('admin.export_interns_pdf') }}"><i class="bi bi-filetype-pdf"></i> PDF</a>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6 col-xl-3">
+    <div class="panel h-100">
+      <div class="panel-title">Attendance Report</div>
+      <p class="text-muted small">Daily attendance with check-in and check-out.</p>
+      <div class="d-flex gap-2">
+        <a class="btn btn-sm btn-primary" href="{{ url_for('admin.export_attendance_csv') }}"><i class="bi bi-filetype-csv"></i> CSV</a>
+        <a class="btn btn-sm btn-outline-primary" href="{{ url_for('admin.export_attendance_pdf') }}"><i class="bi bi-filetype-pdf"></i> PDF</a>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6 col-xl-3">
+    <div class="panel h-100">
+      <div class="panel-title">Performance Report</div>
+      <p class="text-muted small">Ratings, attendance %, and task completion.</p>
+      <div class="d-flex gap-2">
+        <a class="btn btn-sm btn-primary" href="{{ url_for('admin.export_performance_csv') }}"><i class="bi bi-filetype-csv"></i> CSV</a>
+        <a class="btn btn-sm btn-outline-primary" href="{{ url_for('admin.export_performance_pdf') }}"><i class="bi bi-filetype-pdf"></i> PDF</a>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6 col-xl-3">
+    <div class="panel h-100">
+      <div class="panel-title">Project Report</div>
+      <p class="text-muted small">Project inventory with assigned intern counts.</p>
+      <div class="d-flex gap-2">
+        <a class="btn btn-sm btn-primary" href="{{ url_for('admin.export_projects_csv') }}"><i class="bi bi-filetype-csv"></i> CSV</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

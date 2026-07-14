@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% from "macros.html" import pagination_widget, status_badge %}
+{% block title %}Tasks{% endblock %}
+{% block page_title %}Daily Tasks{% endblock %}
+
+{% block content %}
+<div class="panel">
+  <form class="row g-2 mb-3" method="GET">
+    <div class="col-auto">
+      <select class="form-select form-select-sm" name="status">
+        <option value="">All Status</option>
+        {% for s in ['pending','in_progress','submitted','approved','rejected'] %}
+        <option value="{{ s }}" {% if status==s %}selected{% endif %}>{{ s|replace('_',' ')|title }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-auto"><button class="btn btn-sm btn-primary">Filter</button></div>
+  </form>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead><tr><th>Title</th><th>Description</th><th>Deadline</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+        {% for t in tasks %}
+        <tr>
+          <td class="fw-semibold">{{ t.title }}</td>
+          <td>{{ t.description[:90] }}{% if t.description|length > 90 %}...{% endif %}</td>
+          <td>{{ t.deadline.strftime('%d %b %Y') }}</td>
+          <td>{{ status_badge(t.status) }}</td>
+          <td class="text-end">
+            {% if t.status in ['pending', 'in_progress', 'rejected'] %}
+            <a class="btn btn-sm btn-primary" href="{{ url_for('intern.submit_task', task_id=t.id) }}">Submit</a>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="text-center text-muted py-4">No tasks assigned.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {{ pagination_widget(pagination, 'intern.tasks') }}
+</div>
+{% endblock %}

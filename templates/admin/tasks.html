@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% from "macros.html" import pagination_widget, status_badge %}
+{% block title %}Tasks{% endblock %}
+{% block page_title %}Tasks{% endblock %}
+{% block page_subtitle %}Monitor tasks across mentors and interns{% endblock %}
+
+{% block content %}
+<div class="panel">
+  <form class="row g-2 mb-3" method="GET">
+    <div class="col-auto"><input class="form-control form-control-sm" name="q" value="{{ q }}" placeholder="Search task"></div>
+    <div class="col-auto">
+      <select class="form-select form-select-sm" name="status">
+        <option value="">All Status</option>
+        {% for s in ['pending','in_progress','submitted','approved','rejected'] %}
+        <option value="{{ s }}" {% if status==s %}selected{% endif %}>{{ s|replace('_',' ')|title }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-auto"><button class="btn btn-sm btn-primary">Filter</button></div>
+  </form>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead><tr><th>Title</th><th>Intern</th><th>Mentor</th><th>Deadline</th><th>Status</th></tr></thead>
+      <tbody>
+        {% for t in tasks %}
+        <tr>
+          <td>
+            <div class="fw-semibold">{{ t.title }}</div>
+            <div class="small text-muted">{{ t.description[:70] }}{% if t.description|length > 70 %}...{% endif %}</div>
+          </td>
+          <td>{{ t.intern.user.name }}</td>
+          <td>{{ t.mentor.user.name }}</td>
+          <td>{{ t.deadline.strftime('%d %b %Y') }}</td>
+          <td>{{ status_badge(t.status) }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="text-center text-muted py-4">No tasks found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {{ pagination_widget(pagination, 'admin.tasks') }}
+</div>
+{% endblock %}

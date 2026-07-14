@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% from "macros.html" import status_badge %}
+{% block title %}Intern Dashboard{% endblock %}
+{% block page_title %}Intern Dashboard{% endblock %}
+{% block page_subtitle %}Your projects, tasks, and progress at a glance{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-3">
+  <div class="col-md-6 col-xl-3"><div class="stat-card"><div class="stat-label">Pending Tasks</div><div class="stat-value">{{ pending_tasks }}</div></div></div>
+  <div class="col-md-6 col-xl-3"><div class="stat-card"><div class="stat-label">Approved Tasks</div><div class="stat-value">{{ approved_tasks }}</div></div></div>
+  <div class="col-md-6 col-xl-3"><div class="stat-card"><div class="stat-label">Attendance</div><div class="stat-value">{{ attendance_pct }}%</div></div></div>
+  <div class="col-md-6 col-xl-3"><div class="stat-card"><div class="stat-label">Avg Rating</div><div class="stat-value">{{ avg_rating }}</div></div></div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="panel">
+      <div class="panel-title">Task Overview</div>
+      <div class="chart-wrap"><canvas id="internTaskChart" data-label="Tasks"></canvas></div>
+      <p class="small text-muted mt-2 mb-0">Certificates available: <strong>{{ certificates }}</strong></p>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="panel">
+      <div class="panel-title">Assigned Mentor</div>
+      {% if intern.mentor %}
+        <h5 class="mb-1">{{ intern.mentor.user.name }}</h5>
+        <p class="mb-1 text-muted">{{ intern.mentor.designation }} · {{ intern.mentor.department }}</p>
+        <p class="mb-0 small"><i class="bi bi-envelope"></i> {{ intern.mentor.user.email }}</p>
+      {% else %}
+        <p class="text-muted mb-0">No mentor assigned yet.</p>
+      {% endif %}
+    </div>
+    <div class="panel">
+      <div class="panel-title">Assigned Project</div>
+      {% if assignment %}
+        <h5 class="mb-1">{{ assignment.project.title }}</h5>
+        <p class="small text-muted">{{ assignment.project.technology }}</p>
+        {{ status_badge(assignment.status) }}
+      {% else %}
+        <p class="text-muted mb-0">No project assigned yet.</p>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="panel">
+      <div class="panel-title">Upcoming Tasks</div>
+      {% for t in recent_tasks %}
+        <div class="border-bottom py-2">
+          <div class="fw-semibold">{{ t.title }}</div>
+          <div class="small text-muted">Due {{ t.deadline.strftime('%d %b %Y') }} · {{ status_badge(t.status) }}</div>
+        </div>
+      {% else %}
+        <p class="text-muted mb-0">No tasks assigned.</p>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  createChart("internTaskChart", "doughnut", {{ task_labels|tojson }}, {{ task_values|tojson }});
+</script>
+{% endblock %}

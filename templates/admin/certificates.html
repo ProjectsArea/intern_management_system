@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% from "macros.html" import render_field, render_select, pagination_widget %}
+{% block title %}Certificates{% endblock %}
+{% block page_title %}Certificates{% endblock %}
+{% block page_subtitle %}Upload and issue completion certificates{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="panel">
+      <div class="panel-title">Generate Certificate</div>
+      <form method="POST" enctype="multipart/form-data" novalidate>
+        {{ form.hidden_tag() }}
+        {{ render_select(form.intern_id) }}
+        {{ render_field(form.issue_date) }}
+        {{ render_field(form.certificate_file) }}
+        {{ form.submit(class="btn btn-primary w-100") }}
+      </form>
+    </div>
+  </div>
+  <div class="col-lg-8">
+    <div class="panel">
+      <div class="panel-title">Issued Certificates</div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead><tr><th>Intern</th><th>Issue Date</th><th>File</th></tr></thead>
+          <tbody>
+            {% for c in certificates %}
+            <tr>
+              <td>{{ c.intern.user.name }}</td>
+              <td>{{ c.issue_date.strftime('%d %b %Y') }}</td>
+              <td>
+                <a class="btn btn-sm btn-outline-primary" href="{{ url_for('static', filename='uploads/' + c.certificate_file) }}" target="_blank">
+                  <i class="bi bi-download"></i> Download
+                </a>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="3" class="text-center text-muted py-4">No certificates issued.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {{ pagination_widget(pagination, 'admin.certificates') }}
+    </div>
+  </div>
+</div>
+{% endblock %}

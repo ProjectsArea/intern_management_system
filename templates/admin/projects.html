@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% from "macros.html" import pagination_widget %}
+{% block title %}Projects{% endblock %}
+{% block page_title %}Projects{% endblock %}
+{% block page_subtitle %}Create and track internship projects{% endblock %}
+
+{% block content %}
+<div class="panel">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <form class="row g-2" method="GET">
+      <div class="col-auto"><input class="form-control form-control-sm" name="q" value="{{ q }}" placeholder="Search project"></div>
+      <div class="col-auto"><button class="btn btn-sm btn-primary">Search</button></div>
+    </form>
+    <a href="{{ url_for('admin.add_project') }}" class="btn btn-sm btn-primary"><i class="bi bi-plus-lg"></i> Create Project</a>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead>
+        <tr><th>Title</th><th>Technology</th><th>Mentor</th><th>Start</th><th>End</th><th>Assigned</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for p in projects %}
+        <tr>
+          <td>
+            <div class="fw-semibold">{{ p.title }}</div>
+            <div class="small text-muted">{{ p.description[:80] }}{% if p.description|length > 80 %}...{% endif %}</div>
+          </td>
+          <td><span class="badge badge-soft">{{ p.technology }}</span></td>
+          <td>{{ p.mentor.user.name if p.mentor else '-' }}</td>
+          <td>{{ p.start_date.strftime('%d %b %Y') }}</td>
+          <td>{{ p.end_date.strftime('%d %b %Y') if p.end_date else '-' }}</td>
+          <td>{{ p.assignments.count() }}</td>
+          <td class="text-end">
+            <a class="btn btn-sm btn-outline-primary" href="{{ url_for('admin.edit_project', project_id=p.id) }}"><i class="bi bi-pencil"></i></a>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="text-center text-muted py-4">No projects found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {{ pagination_widget(pagination, 'admin.projects') }}
+</div>
+{% endblock %}

@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% from "macros.html" import status_badge %}
+{% block title %}My Project{% endblock %}
+{% block page_title %}Assigned Projects{% endblock %}
+
+{% block content %}
+<div class="panel">
+  {% for a in assignments %}
+  <div class="border rounded-3 p-3 mb-3">
+    <div class="d-flex justify-content-between align-items-start gap-2">
+      <div>
+        <h5 class="mb-1">{{ a.project.title }}</h5>
+        <p class="text-muted mb-2">{{ a.project.description }}</p>
+        <div class="small">
+          <span class="badge badge-soft me-2">{{ a.project.technology }}</span>
+          Mentor: {{ a.project.mentor.user.name if a.project.mentor else '-' }}
+        </div>
+      </div>
+      {{ status_badge(a.status) }}
+    </div>
+    <div class="small text-muted mt-2">
+      {{ a.project.start_date.strftime('%d %b %Y') }}
+      {% if a.project.end_date %} – {{ a.project.end_date.strftime('%d %b %Y') }}{% endif %}
+      · Assigned {{ a.assigned_date.strftime('%d %b %Y') if a.assigned_date else '' }}
+    </div>
+  </div>
+  {% else %}
+  <p class="text-muted mb-0">No project has been assigned yet.</p>
+  {% endfor %}
+</div>
+{% endblock %}

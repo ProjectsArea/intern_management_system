@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% from "macros.html" import pagination_widget %}
+{% block title %}Feedback{% endblock %}
+{% block page_title %}Feedback{% endblock %}
+{% block page_subtitle %}Mentor performance feedback across interns{% endblock %}
+
+{% block content %}
+<div class="panel">
+  <form class="row g-2 mb-3" method="GET">
+    <div class="col-auto"><input class="form-control form-control-sm" name="q" value="{{ q }}" placeholder="Search intern"></div>
+    <div class="col-auto"><button class="btn btn-sm btn-primary">Search</button></div>
+  </form>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead><tr><th>Intern</th><th>Mentor</th><th>Rating</th><th>Comments</th><th>Date</th></tr></thead>
+      <tbody>
+        {% for f in feedbacks %}
+        <tr>
+          <td>{{ f.intern.user.name }}</td>
+          <td>{{ f.mentor.user.name }}</td>
+          <td>
+            {% for i in range(f.rating) %}<i class="bi bi-star-fill text-warning"></i>{% endfor %}
+            {% for i in range(5 - f.rating) %}<i class="bi bi-star text-warning"></i>{% endfor %}
+          </td>
+          <td>{{ f.comments }}</td>
+          <td>{{ f.date.strftime('%d %b %Y') }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="text-center text-muted py-4">No feedback yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {{ pagination_widget(pagination, 'admin.feedback') }}
+</div>
+{% endblock %}

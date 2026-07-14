@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% from "macros.html" import pagination_widget %}
+{% block title %}Certificates{% endblock %}
+{% block page_title %}Certificates{% endblock %}
+{% block page_subtitle %}Download issued certificates or upload your own copies{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="panel">
+      <div class="panel-title">Upload Certificate</div>
+      <form method="POST" action="{{ url_for('intern.upload_certificate') }}" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="mb-3">
+          <label class="form-label">Certificate File (PDF/PNG/JPG)</label>
+          <input type="file" name="certificate_file" class="form-control" required>
+        </div>
+        <button class="btn btn-primary w-100">Upload</button>
+      </form>
+    </div>
+  </div>
+  <div class="col-lg-8">
+    <div class="panel">
+      <div class="panel-title">My Certificates</div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead><tr><th>Issue Date</th><th>File</th><th></th></tr></thead>
+          <tbody>
+            {% for c in certificates %}
+            <tr>
+              <td>{{ c.issue_date.strftime('%d %b %Y') }}</td>
+              <td>{{ c.certificate_file.split('/')[-1] }}</td>
+              <td class="text-end">
+                <a class="btn btn-sm btn-outline-primary" href="{{ url_for('intern.download_certificate', cert_id=c.id) }}">
+                  <i class="bi bi-download"></i> Download
+                </a>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="3" class="text-center text-muted py-4">No certificates available.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {{ pagination_widget(pagination, 'intern.certificates') }}
+    </div>
+  </div>
+</div>
+{% endblock %}

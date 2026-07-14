@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% from "macros.html" import render_field, render_select %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="panel" style="max-width:760px;">
+  <form method="POST" novalidate>
+    {{ form.hidden_tag() }}
+    {{ render_field(form.title) }}
+    {{ render_field(form.description) }}
+    <div class="row">
+      <div class="col-md-6">{{ render_field(form.technology) }}</div>
+      <div class="col-md-6">{{ render_select(form.mentor_id) }}</div>
+      <div class="col-md-6">{{ render_field(form.start_date) }}</div>
+      <div class="col-md-6">{{ render_field(form.end_date) }}</div>
+    </div>
+    <div class="d-flex gap-2">
+      {{ form.submit(class="btn btn-primary") }}
+      <a href="{{ url_for('admin.projects') }}" class="btn btn-outline-secondary">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

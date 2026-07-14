@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% from "macros.html" import render_field, render_select, pagination_widget %}
+{% block title %}Feedback{% endblock %}
+{% block page_title %}Intern Feedback{% endblock %}
+{% block page_subtitle %}Rate intern performance and share comments{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="panel">
+      <div class="panel-title">Provide Feedback</div>
+      <form method="POST" novalidate>
+        {{ form.hidden_tag() }}
+        {{ render_select(form.intern_id) }}
+        {{ render_select(form.rating) }}
+        {{ render_field(form.comments) }}
+        {{ form.submit(class="btn btn-primary w-100") }}
+      </form>
+    </div>
+  </div>
+  <div class="col-lg-8">
+    <div class="panel">
+      <div class="panel-title">Submitted Feedback</div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead><tr><th>Intern</th><th>Rating</th><th>Comments</th><th>Date</th></tr></thead>
+          <tbody>
+            {% for f in feedbacks %}
+            <tr>
+              <td>{{ f.intern.user.name }}</td>
+              <td>{{ f.rating }}/5</td>
+              <td>{{ f.comments }}</td>
+              <td>{{ f.date.strftime('%d %b %Y') }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4" class="text-center text-muted py-4">No feedback submitted.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {{ pagination_widget(pagination, 'mentor.feedback') }}
+    </div>
+  </div>
+</div>
+{% endblock %}

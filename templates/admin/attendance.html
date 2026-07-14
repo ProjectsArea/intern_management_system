@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% from "macros.html" import render_field, render_select, pagination_widget, status_badge %}
+{% block title %}Attendance{% endblock %}
+{% block page_title %}Attendance{% endblock %}
+{% block page_subtitle %}Mark and review intern attendance{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="panel">
+      <div class="panel-title">Mark Attendance</div>
+      <form method="POST" novalidate>
+        {{ form.hidden_tag() }}
+        {{ render_select(form.intern_id) }}
+        {{ render_field(form.date) }}
+        {{ render_field(form.check_in) }}
+        {{ render_field(form.check_out) }}
+        {{ render_select(form.status) }}
+        {{ form.submit(class="btn btn-primary w-100") }}
+      </form>
+    </div>
+  </div>
+  <div class="col-lg-8">
+    <div class="panel">
+      <form class="row g-2 mb-3" method="GET">
+        <div class="col-auto"><input class="form-control form-control-sm" name="q" value="{{ q }}" placeholder="Intern name"></div>
+        <div class="col-auto">
+          <select class="form-select form-select-sm" name="status">
+            <option value="">All</option>
+            {% for s in ['Present','Absent','Leave'] %}
+            <option value="{{ s }}" {% if status==s %}selected{% endif %}>{{ s }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-auto"><button class="btn btn-sm btn-primary">Filter</button></div>
+      </form>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead><tr><th>Intern</th><th>Date</th><th>In</th><th>Out</th><th>Status</th></tr></thead>
+          <tbody>
+            {% for r in records %}
+            <tr>
+              <td>{{ r.intern.user.name }}</td>
+              <td>{{ r.date.strftime('%d %b %Y') }}</td>
+              <td>{{ r.check_in or '-' }}</td>
+              <td>{{ r.check_out or '-' }}</td>
+              <td>{{ status_badge(r.status) }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" class="text-center text-muted py-4">No attendance records.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {{ pagination_widget(pagination, 'admin.attendance') }}
+    </div>
+  </div>
+</div>
+{% endblock %}

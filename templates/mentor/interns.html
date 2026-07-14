@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% from "macros.html" import pagination_widget, status_badge %}
+{% block title %}My Interns{% endblock %}
+{% block page_title %}Assigned Interns{% endblock %}
+
+{% block content %}
+<div class="panel">
+  <form class="row g-2 mb-3" method="GET">
+    <div class="col-auto"><input class="form-control form-control-sm" name="q" value="{{ q }}" placeholder="Search intern"></div>
+    <div class="col-auto"><button class="btn btn-sm btn-primary">Search</button></div>
+  </form>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead><tr><th>Name</th><th>Branch</th><th>College</th><th>Phone</th><th>Status</th><th>GitHub</th></tr></thead>
+      <tbody>
+        {% for i in interns %}
+        <tr>
+          <td>
+            <div class="fw-semibold">{{ i.user.name }}</div>
+            <div class="small text-muted">{{ i.user.email }}</div>
+          </td>
+          <td>{{ i.branch }}</td>
+          <td>{{ i.college }}</td>
+          <td>{{ i.phone }}</td>
+          <td>{{ status_badge(i.status) }}</td>
+          <td>{% if i.github %}<a href="{{ i.github }}" target="_blank">Profile</a>{% else %}-{% endif %}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" class="text-center text-muted py-4">No interns assigned.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {{ pagination_widget(pagination, 'mentor.interns') }}
+</div>
+{% endblock %}

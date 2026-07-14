@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% from "macros.html" import pagination_widget, status_badge %}
+{% block title %}Attendance{% endblock %}
+{% block page_title %}My Attendance{% endblock %}
+{% block page_subtitle %}Current attendance rate: {{ attendance_pct }}%{% endblock %}
+
+{% block content %}
+<div class="panel">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead><tr><th>Date</th><th>Check In</th><th>Check Out</th><th>Status</th></tr></thead>
+      <tbody>
+        {% for r in records %}
+        <tr>
+          <td>{{ r.date.strftime('%d %b %Y') }}</td>
+          <td>{{ r.check_in or '-' }}</td>
+          <td>{{ r.check_out or '-' }}</td>
+          <td>{{ status_badge(r.status) }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" class="text-center text-muted py-4">No attendance records yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {{ pagination_widget(pagination, 'intern.attendance') }}
+</div>
+{% endblock %}

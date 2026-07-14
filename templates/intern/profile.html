@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% from "macros.html" import render_field %}
+{% block title %}Profile{% endblock %}
+{% block page_title %}Update Profile{% endblock %}
+
+{% block content %}
+<div class="panel" style="max-width:760px;">
+  <form method="POST" enctype="multipart/form-data" novalidate>
+    {{ form.hidden_tag() }}
+    <div class="row">
+      <div class="col-md-6">{{ render_field(form.name) }}</div>
+      <div class="col-md-6">{{ render_field(form.phone) }}</div>
+      <div class="col-md-12">{{ render_field(form.address) }}</div>
+      <div class="col-md-6">{{ render_field(form.github) }}</div>
+      <div class="col-md-6">{{ render_field(form.linkedin) }}</div>
+      <div class="col-md-6">{{ render_field(form.profile_image) }}</div>
+      <div class="col-md-6">{{ render_field(form.resume) }}</div>
+      <div class="col-md-6">{{ render_field(form.password) }}</div>
+      <div class="col-md-6">{{ render_field(form.confirm_password) }}</div>
+    </div>
+    {% if intern.resume %}
+    <p class="small text-muted">Current resume:
+      <a href="{{ url_for('static', filename='uploads/' + intern.resume) }}" target="_blank">View</a>
+    </p>
+    {% endif %}
+    {{ form.submit(class="btn btn-primary") }}
+  </form>
+</div>
+{% endblock %}

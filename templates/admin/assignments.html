@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% from "macros.html" import render_select, pagination_widget, status_badge %}
+{% block title %}Assignments{% endblock %}
+{% block page_title %}Assign Projects{% endblock %}
+{% block page_subtitle %}Map interns to projects{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="panel">
+      <div class="panel-title">Assign Project</div>
+      <form method="POST" novalidate>
+        {{ form.hidden_tag() }}
+        {{ render_select(form.intern_id) }}
+        {{ render_select(form.project_id) }}
+        {{ render_select(form.status) }}
+        {{ form.submit(class="btn btn-primary w-100") }}
+      </form>
+    </div>
+  </div>
+  <div class="col-lg-8">
+    <div class="panel">
+      <div class="panel-title">Current Assignments</div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead><tr><th>Intern</th><th>Project</th><th>Date</th><th>Status</th></tr></thead>
+          <tbody>
+            {% for a in assignments %}
+            <tr>
+              <td>{{ a.intern.user.name }}</td>
+              <td>{{ a.project.title }}</td>
+              <td>{{ a.assigned_date.strftime('%d %b %Y') if a.assigned_date else '-' }}</td>
+              <td>{{ status_badge(a.status) }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4" class="text-center text-muted py-4">No assignments yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {{ pagination_widget(pagination, 'admin.assignments') }}
+    </div>
+  </div>
+</div>
+{% endblock %}
