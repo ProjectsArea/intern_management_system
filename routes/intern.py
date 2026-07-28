@@ -1,5 +1,3 @@
-from datetime import date
-
 from flask import (
     Blueprint,
     current_app,
@@ -14,17 +12,30 @@ from flask_login import current_user, login_required
 from sqlalchemy import func
 
 from extensions import db
-from forms import ProfileForm, SubmissionForm
+from forms import CheckInForm, CheckOutForm, ProfileForm, SubmissionForm
 from models import (
     Assignment,
     Attendance,
     Certificate,
     Feedback,
     Intern,
+    InternTiming,
     Submission,
     Task,
 )
-from utils import attendance_percentage, role_required, save_upload
+from utils import (
+    attendance_percentage,
+    calculate_late_status,
+    calculate_work_hours,
+    format_work_hours,
+    get_trusted_date,
+    get_trusted_datetime,
+    get_trusted_time_str,
+    role_required,
+    save_upload,
+    verify_location,
+    verify_work_hours,
+)
 
 intern_bp = Blueprint("intern", __name__, url_prefix="/intern")
 
@@ -130,6 +141,7 @@ def attendance():
         records=pagination.items,
         pagination=pagination,
         attendance_pct=attendance_percentage(intern.id),
+        server_now=get_trusted_datetime(),
     )
 
 
@@ -288,9 +300,143 @@ def upload_certificate():
         Certificate(
             intern_id=intern.id,
             certificate_file=filepath,
-            issue_date=date.today(),
+            issue_date=get_trusted_date(),
         )
     )
     db.session.commit()
     flash("Certificate uploaded successfully.", "success")
     return redirect(url_for("intern.certificates"))
+
+
+# -------------------- Attendance Check-in/Check-out --------------------
+
+
+@intern_bp.route("/check-in", methods=["POST"])
+@login_required
+@role_required("intern")
+def check_in():
+    intern = _current_intern()
+    form = CheckInForm()
+    
+    if not form.validate_on_submit():
+        flash("Invalid location data.", "danger")
+        return redirect(url_for("intern.attendance"))
+    
+    try:
+        user_lat = float(form.latitude.data)
+        user_lon = float(form.longitude.data)
+    except (ValueError, TypeError):
+        flash("Invalid coordinates.", "danger")
+        return redirect(url_for("intern.attendance"))
+    
+    # Verify location
+    location_valid, location_msg = verify_location(user_lat, user_lon)
+    if not location_valid:
+        flash(location_msg, "danger")
+        return redirect(url_for("intern.attendance"))
+    
+    # Use trusted server time (not the user's system clock)
+    today = get_trusted_date()
+    existing = Attendance.query.filter_by(intern_id=intern.id, date=today).first()
+    if existing and existing.check_in:
+        flash("You have already checked in today.", "warning")
+        return redirect(url_for("intern.attendance"))
+    
+    current_time = get_trusted_time_str()
+    
+    # Get intern timing settings
+    timing = InternTiming.query.filter_by(intern_id=intern.id).first()
+    
+    # Check if late
+    is_late = calculate_late_status(current_time, timing)
+    
+    # Create or update attendance record
+    if existing:
+        existing.check_in = current_time
+        existing.check_in_latitude = user_lat
+        existing.check_in_longitude = user_lon
+        existing.location_verified = True
+        existing.is_late = is_late
+        existing.status = "Present"
+    else:
+        attendance = Attendance(
+            intern_id=intern.id,
+            date=today,
+            check_in=current_time,
+            check_in_latitude=user_lat,
+            check_in_longitude=user_lon,
+            location_verified=True,
+            is_late=is_late,
+            status="Present",
+        )
+        db.session.add(attendance)
+    
+    db.session.commit()
+    
+    if is_late:
+        flash(f"Checked in at {current_time}. You are late today.", "warning")
+    else:
+        flash(f"Checked in successfully at {current_time}.", "success")
+    
+    return redirect(url_for("intern.attendance"))
+
+
+@intern_bp.route("/check-out", methods=["POST"])
+@login_required
+@role_required("intern")
+def check_out():
+    intern = _current_intern()
+    form = CheckOutForm()
+    
+    if not form.validate_on_submit():
+        flash("Invalid location data.", "danger")
+        return redirect(url_for("intern.attendance"))
+    
+    try:
+        user_lat = float(form.latitude.data)
+        user_lon = float(form.longitude.data)
+    except (ValueError, TypeError):
+        flash("Invalid coordinates.", "danger")
+        return redirect(url_for("intern.attendance"))
+    
+    # Verify location
+    location_valid, location_msg = verify_location(user_lat, user_lon)
+    if not location_valid:
+        flash(location_msg, "danger")
+        return redirect(url_for("intern.attendance"))
+    
+    # Check if checked in today
+    today = get_trusted_date()
+    attendance = Attendance.query.filter_by(intern_id=intern.id, date=today).first()
+    
+    if not attendance or not attendance.check_in:
+        flash("You need to check in first.", "warning")
+        return redirect(url_for("intern.attendance"))
+    
+    if attendance.check_out:
+        flash("You have already checked out today.", "warning")
+        return redirect(url_for("intern.attendance"))
+    
+    current_time = get_trusted_time_str()
+    
+    # Get intern timing settings
+    timing = InternTiming.query.filter_by(intern_id=intern.id).first()
+    
+    # Verify work hours for flexible timing
+    hours_met = verify_work_hours(attendance.check_in, current_time, timing)
+    
+    # Update attendance record
+    attendance.check_out = current_time
+    attendance.check_out_latitude = user_lat
+    attendance.check_out_longitude = user_lon
+    
+    # For flexible timing, update status based on hours worked
+    worked_hours = format_work_hours(calculate_work_hours(attendance.check_in, current_time))
+    if timing and timing.timing_type == "flexible" and not hours_met:
+        attendance.status = "Absent"
+        flash(f"Checked out at {current_time}. Worked {worked_hours}. Required hours not met.", "warning")
+    else:
+        flash(f"Checked out successfully at {current_time}. Total working hours: {worked_hours}.", "success")
+    
+    db.session.commit()
+    return redirect(url_for("intern.attendance"))

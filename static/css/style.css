@@ -65,8 +65,11 @@ a {
 
 .sidebar-nav {
   padding: 1rem 0.75rem;
+  overflow-x: hidden;
   overflow-y: auto;
   flex: 1;
+  flex-wrap: nowrap;
+  min-height: 0;
 }
 
 .sidebar-nav .nav-link {
@@ -78,6 +81,8 @@ a {
   align-items: center;
   gap: 0.7rem;
   font-weight: 500;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .sidebar-nav .nav-link:hover,

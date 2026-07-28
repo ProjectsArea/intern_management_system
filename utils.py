@@ -1,9 +1,14 @@
 import csv
 import io
+import json
+import math
 import os
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import wraps
+from urllib.error import URLError
+from urllib.request import urlopen
+from zoneinfo import ZoneInfo
 
 from flask import abort, current_app, flash, redirect, url_for
 from flask_login import current_user
@@ -19,10 +24,48 @@ from models import (
     Attendance,
     Feedback,
     Intern,
+    InternTiming,
     Mentor,
+    OfficeLocation,
     Project,
     User,
 )
+
+
+def get_app_timezone():
+    tz_name = current_app.config.get("APP_TIMEZONE", "Asia/Kolkata")
+    return ZoneInfo(tz_name)
+
+
+def _fetch_trusted_datetime():
+    """Fetch current time from an external source (not the user's machine clock)."""
+    tz_name = current_app.config.get("APP_TIMEZONE", "Asia/Kolkata")
+    url = f"https://worldtimeapi.org/api/timezone/{tz_name}"
+    with urlopen(url, timeout=4) as response:
+        payload = json.loads(response.read().decode())
+    return datetime.fromisoformat(payload["datetime"])
+
+
+def get_trusted_datetime():
+    """
+    Return authoritative current datetime for attendance.
+    Prefers an external time API; falls back to server clock in app timezone.
+    """
+    tz = get_app_timezone()
+    if current_app.config.get("USE_TRUSTED_TIME", True):
+        try:
+            return _fetch_trusted_datetime().astimezone(tz)
+        except (URLError, TimeoutError, OSError, ValueError, KeyError):
+            pass
+    return datetime.now(tz)
+
+
+def get_trusted_date():
+    return get_trusted_datetime().date()
+
+
+def get_trusted_time_str():
+    return get_trusted_datetime().strftime("%H:%M")
 
 
 def role_required(*roles):
@@ -298,3 +341,99 @@ def build_pdf_table(title, headers, rows):
     buffer.seek(0)
     filename = f"{title.replace(' ', '_').lower()}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
     return buffer, filename
+
+
+def calculate_distance(lat1, lon1, lat2, lon2):
+    """Calculate distance between two coordinates in meters using Haversine formula."""
+    R = 6371000  # Earth's radius in meters
+    
+    lat1_rad = math.radians(lat1)
+    lat2_rad = math.radians(lat2)
+    delta_lat = math.radians(lat2 - lat1)
+    delta_lon = math.radians(lon2 - lon1)
+    
+    a = (math.sin(delta_lat / 2) ** 2 +
+         math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(delta_lon / 2) ** 2)
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    
+    return R * c
+
+
+def verify_location(user_lat, user_lon):
+    """Verify if user's location is within any active office location."""
+    active_location = OfficeLocation.query.filter_by(is_active=True).first()
+    if not active_location:
+        return False, "No active office location configured"
+    
+    distance = calculate_distance(
+        user_lat, user_lon,
+        active_location.latitude, active_location.longitude
+    )
+    
+    if distance <= active_location.radius_meters:
+        return True, "Location verified"
+    else:
+        return False, f"Outside office location. Distance: {distance:.0f}m (allowed: {active_location.radius_meters}m)"
+
+
+def calculate_late_status(check_in_time, intern_timing):
+    """Calculate if check-in is late based on intern's timing settings."""
+    if not intern_timing or intern_timing.timing_type != "fixed":
+        return False
+    
+    if not intern_timing.start_time:
+        return False
+    
+    try:
+        check_in_dt = datetime.strptime(check_in_time, "%H:%M")
+        start_dt = datetime.strptime(intern_timing.start_time, "%H:%M")
+        
+        # Add grace period
+        grace_time = timedelta(minutes=intern_timing.grace_minutes or 0)
+        allowed_time = start_dt + grace_time
+        
+        return check_in_dt > allowed_time
+    except (ValueError, TypeError):
+        return False
+
+
+def format_work_hours(hours):
+    """Format decimal hours as 'Xh Ym'."""
+    if not hours:
+        return "-"
+    total_minutes = int(round(hours * 60))
+    h, m = divmod(total_minutes, 60)
+    if m:
+        return f"{h}h {m}m"
+    return f"{h}h"
+
+
+def calculate_work_hours(check_in, check_out):
+    """Calculate work hours between check-in and check-out."""
+    if not check_in or not check_out:
+        return 0
+    
+    try:
+        check_in_dt = datetime.strptime(check_in, "%H:%M")
+        check_out_dt = datetime.strptime(check_out, "%H:%M")
+        
+        # Handle overnight case
+        if check_out_dt < check_in_dt:
+            check_out_dt += timedelta(days=1)
+        
+        diff = check_out_dt - check_in_dt
+        return diff.total_seconds() / 3600  # Convert to hours
+    except (ValueError, TypeError):
+        return 0
+
+
+def verify_work_hours(check_in, check_out, intern_timing):
+    """Verify if intern has worked required hours (for flexible timing)."""
+    if not intern_timing or intern_timing.timing_type != "flexible":
+        return True
+    
+    if not intern_timing.required_hours:
+        return True
+    
+    worked_hours = calculate_work_hours(check_in, check_out)
+    return worked_hours >= intern_timing.required_hours

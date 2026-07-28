@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block page_subtitle %}Configure work timing settings for intern{% endblock %}
+
+{% block content %}
+<div class="panel">
+  <form method="POST" class="row g-3">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    
+    <div class="col-md-12">
+      <label class="form-label">Intern</label>
+      <select name="intern_id" class="form-select" required>
+        <option value="">Select Intern</option>
+        {% for id, name in form.intern_id.choices %}
+          <option value="{{ id }}" {{ 'selected' if form.intern_id.data == id else '' }}>{{ name }}</option>
+        {% endfor %}
+      </select>
+      {% if form.intern_id.errors %}
+        <div class="text-danger small">{{ form.intern_id.errors[0] }}</div>
+      {% endif %}
+    </div>
+    
+    <div class="col-md-6">
+      <label class="form-label">Timing Type</label>
+      <select name="timing_type" class="form-select" required onchange="toggleTimingFields()">
+        <option value="fixed" {{ 'selected' if form.timing_type.data == 'fixed' else '' }}>Fixed Timing</option>
+        <option value="flexible" {{ 'selected' if form.timing_type.data == 'flexible' else '' }}>Flexible Timing</option>
+      </select>
+      {% if form.timing_type.errors %}
+        <div class="text-danger small">{{ form.timing_type.errors[0] }}</div>
+      {% endif %}
+    </div>
+    
+    <div class="col-md-6">
+      <label class="form-label">Grace Minutes</label>
+      <input type="number" name="grace_minutes" class="form-control" value="{{ form.grace_minutes.data or 15 }}" required min="0" max="60">
+      <small class="text-muted">Grace period before marking as late (for fixed timing)</small>
+      {% if form.grace_minutes.errors %}
+        <div class="text-danger small">{{ form.grace_minutes.errors[0] }}</div>
+      {% endif %}
+    </div>
+    
+    <div class="col-md-6" id="start-time-field">
+      <label class="form-label">Start Time (HH:MM)</label>
+      <input type="text" name="start_time" class="form-control" value="{{ form.start_time.data or '' }}" placeholder="e.g., 09:00">
+      {% if form.start_time.errors %}
+        <div class="text-danger small">{{ form.start_time.errors[0] }}</div>
+      {% endif %}
+    </div>
+    
+    <div class="col-md-6" id="end-time-field">
+      <label class="form-label">End Time (HH:MM)</label>
+      <input type="text" name="end_time" class="form-control" value="{{ form.end_time.data or '' }}" placeholder="e.g., 18:00">
+      {% if form.end_time.errors %}
+        <div class="text-danger small">{{ form.end_time.errors[0] }}</div>
+      {% endif %}
+    </div>
+    
+    <div class="col-md-6" id="required-hours-field" style="display: none;">
+      <label class="form-label">Required Hours (for flexible)</label>
+      <input type="number" name="required_hours" class="form-control" value="{{ form.required_hours.data or '' }}" min="1" max="24" placeholder="e.g., 8">
+      {% if form.required_hours.errors %}
+        <div class="text-danger small">{{ form.required_hours.errors[0] }}</div>
+      {% endif %}
+    </div>
+    
+    <div class="col-12">
+      <button type="submit" class="btn btn-primary">{{ form.submit.label.text }}</button>
+      <a href="{{ url_for('admin.intern_timings') }}" class="btn btn-secondary">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleTimingFields() {
+  const timingType = document.querySelector('select[name="timing_type"]').value;
+  document.getElementById('start-time-field').style.display = timingType === 'fixed' ? 'block' : 'none';
+  document.getElementById('end-time-field').style.display = timingType === 'fixed' ? 'block' : 'none';
+  document.getElementById('required-hours-field').style.display = timingType === 'flexible' ? 'block' : 'none';
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', toggleTimingFields);
+</script>
+{% endblock %}

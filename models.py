@@ -1,4 +1,4 @@
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 
 from flask_login import UserMixin
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -129,8 +129,37 @@ class Attendance(db.Model):
     check_in = db.Column(db.String(10), nullable=True)
     check_out = db.Column(db.String(10), nullable=True)
     status = db.Column(db.String(20), nullable=False)  # Present, Absent, Leave
+    is_late = db.Column(db.Boolean, default=False)
+    check_in_latitude = db.Column(db.Float, nullable=True)
+    check_in_longitude = db.Column(db.Float, nullable=True)
+    check_out_latitude = db.Column(db.Float, nullable=True)
+    check_out_longitude = db.Column(db.Float, nullable=True)
+    location_verified = db.Column(db.Boolean, default=False)
 
     intern = db.relationship("Intern", back_populates="attendances")
+
+    @property
+    def work_hours(self):
+        if not self.check_in or not self.check_out:
+            return 0
+        try:
+            check_in_dt = datetime.strptime(self.check_in, "%H:%M")
+            check_out_dt = datetime.strptime(self.check_out, "%H:%M")
+            if check_out_dt < check_in_dt:
+                check_out_dt += timedelta(days=1)
+            return (check_out_dt - check_in_dt).total_seconds() / 3600
+        except (ValueError, TypeError):
+            return 0
+
+    @property
+    def work_hours_display(self):
+        if not self.check_in or not self.check_out:
+            return "-"
+        total_minutes = int(round(self.work_hours * 60))
+        hours, minutes = divmod(total_minutes, 60)
+        if minutes:
+            return f"{hours}h {minutes}m"
+        return f"{hours}h"
 
     __table_args__ = (
         db.UniqueConstraint("intern_id", "date", name="uq_intern_date"),
@@ -191,3 +220,35 @@ class Certificate(db.Model):
     issue_date = db.Column(db.Date, default=date.today)
 
     intern = db.relationship("Intern", back_populates="certificates")
+
+
+class OfficeLocation(db.Model):
+    __tablename__ = "office_locations"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(120), nullable=False)
+    latitude = db.Column(db.Float, nullable=False)
+    longitude = db.Column(db.Float, nullable=False)
+    radius_meters = db.Column(db.Integer, default=100)  # Allowed radius in meters
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<OfficeLocation {self.name}>"
+
+
+class InternTiming(db.Model):
+    __tablename__ = "intern_timings"
+
+    id = db.Column(db.Integer, primary_key=True)
+    intern_id = db.Column(db.Integer, db.ForeignKey("interns.id"), nullable=False, unique=True)
+    timing_type = db.Column(db.String(20), nullable=False, default="fixed")  # fixed, flexible
+    start_time = db.Column(db.String(5), nullable=True)  # HH:MM format
+    end_time = db.Column(db.String(5), nullable=True)  # HH:MM format
+    required_hours = db.Column(db.Integer, nullable=True)  # For flexible timing - required hours per day
+    grace_minutes = db.Column(db.Integer, default=15)  # Grace period before marking as late
+
+    intern = db.relationship("Intern", backref="timing")
+
+    def __repr__(self):
+        return f"<InternTiming {self.intern_id}>"

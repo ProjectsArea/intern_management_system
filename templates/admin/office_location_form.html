@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block page_subtitle %}Configure office location for attendance verification{% endblock %}
+
+{% block content %}
+<div class="panel">
+  <form method="POST" class="row g-3">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    
+    <div class="col-md-12">
+      <label class="form-label">Location Name</label>
+      <input type="text" name="name" class="form-control" value="{{ form.name.data or '' }}" required>
+      {% if form.name.errors %}
+        <div class="text-danger small">{{ form.name.errors[0] }}</div>
+      {% endif %}
+    </div>
+    
+    <div class="col-md-12 mb-3">
+      <button type="button" class="btn btn-outline-primary" onclick="getCurrentLocation()">
+        <i class="bi bi-geo-alt me-2"></i>Use Current Location
+      </button>
+      <div id="locationStatus" class="small text-muted mt-1"></div>
+    </div>
+
+    <div class="col-md-6">
+      <label class="form-label">Latitude</label>
+      <input type="text" name="latitude" id="latitude" class="form-control" value="{{ form.latitude.data or '' }}" required placeholder="e.g., 12.9716">
+      {% if form.latitude.errors %}
+        <div class="text-danger small">{{ form.latitude.errors[0] }}</div>
+      {% endif %}
+    </div>
+
+    <div class="col-md-6">
+      <label class="form-label">Longitude</label>
+      <input type="text" name="longitude" id="longitude" class="form-control" value="{{ form.longitude.data or '' }}" required placeholder="e.g., 77.5946">
+      {% if form.longitude.errors %}
+        <div class="text-danger small">{{ form.longitude.errors[0] }}</div>
+      {% endif %}
+    </div>
+    
+    <div class="col-md-6">
+      <label class="form-label">Radius (meters)</label>
+      <input type="number" name="radius_meters" class="form-control" value="{{ form.radius_meters.data or 100 }}" required min="10" max="1000">
+      {% if form.radius_meters.errors %}
+        <div class="text-danger small">{{ form.radius_meters.errors[0] }}</div>
+      {% endif %}
+    </div>
+    
+    <div class="col-md-6">
+      <label class="form-label">Active</label>
+      <select name="is_active" class="form-select">
+        <option value="True" {{ 'selected' if form.is_active.data == True else '' }}>Yes</option>
+        <option value="False" {{ 'selected' if form.is_active.data == False else '' }}>No</option>
+      </select>
+      {% if form.is_active.errors %}
+        <div class="text-danger small">{{ form.is_active.errors[0] }}</div>
+      {% endif %}
+    </div>
+    
+    <div class="col-12">
+      <button type="submit" class="btn btn-primary">{{ form.submit.label.text }}</button>
+      <a href="{{ url_for('admin.office_locations') }}" class="btn btn-secondary">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function getCurrentLocation() {
+  const statusDiv = document.getElementById('locationStatus');
+  statusDiv.textContent = 'Getting your location...';
+
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      function(position) {
+        document.getElementById('latitude').value = position.coords.latitude.toFixed(6);
+        document.getElementById('longitude').value = position.coords.longitude.toFixed(6);
+        statusDiv.textContent = `Location captured: ${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`;
+        statusDiv.classList.remove('text-danger');
+        statusDiv.classList.add('text-success');
+      },
+      function(error) {
+        let errorMsg = 'Error getting location: ';
+        switch(error.code) {
+          case error.PERMISSION_DENIED:
+            errorMsg += 'Permission denied. Please allow location access.';
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMsg += 'Location information unavailable.';
+            break;
+          case error.TIMEOUT:
+            errorMsg += 'Location request timed out.';
+            break;
+          default:
+            errorMsg += 'Unknown error.';
+        }
+        statusDiv.textContent = errorMsg;
+        statusDiv.classList.add('text-danger');
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
+    );
+  } else {
+    statusDiv.textContent = 'Geolocation is not supported by your browser';
+    statusDiv.classList.add('text-danger');
+  }
+}
+</script>
+{% endblock %}

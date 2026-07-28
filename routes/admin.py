@@ -21,7 +21,9 @@ from forms import (
     AttendanceForm,
     CertificateForm,
     InternForm,
+    InternTimingForm,
     MentorForm,
+    OfficeLocationForm,
     ProjectForm,
 )
 from models import (
@@ -30,7 +32,9 @@ from models import (
     Certificate,
     Feedback,
     Intern,
+    InternTiming,
     Mentor,
+    OfficeLocation,
     Project,
     Task,
     User,
@@ -39,6 +43,8 @@ from utils import (
     attendance_percentage,
     build_pdf_table,
     export_csv,
+    format_work_hours,
+    get_trusted_date,
     get_intern_choices,
     get_mentor_choices,
     get_project_choices,
@@ -539,6 +545,13 @@ def attendance():
     page = request.args.get("page", 1, type=int)
     status = request.args.get("status", "").strip()
     q = request.args.get("q", "").strip()
+    intern_id = request.args.get("intern_id", type=int)
+    from_date_raw = request.args.get("from_date", "").strip()
+    to_date_raw = request.args.get("to_date", "").strip()
+    if not any([status, q, intern_id, from_date_raw, to_date_raw]):
+        today_str = get_trusted_date().isoformat()
+        from_date_raw = today_str
+        to_date_raw = today_str
 
     if form.validate_on_submit():
         check_in = form.check_in.data.strftime("%H:%M") if form.check_in.data else None
@@ -570,7 +583,36 @@ def attendance():
         query = query.filter(Attendance.status == status)
     if q:
         query = query.filter(User.name.ilike(f"%{q}%"))
-    pagination = _paginate(query.order_by(Attendance.date.desc()), page)
+    if intern_id:
+        query = query.filter(Attendance.intern_id == intern_id)
+
+    from_date = None
+    if from_date_raw:
+        try:
+            from_date = datetime.strptime(from_date_raw, "%Y-%m-%d").date()
+            query = query.filter(Attendance.date >= from_date)
+        except ValueError:
+            flash("Invalid from date filter ignored.", "warning")
+            from_date_raw = ""
+
+    to_date = None
+    if to_date_raw:
+        try:
+            to_date = datetime.strptime(to_date_raw, "%Y-%m-%d").date()
+            query = query.filter(Attendance.date <= to_date)
+        except ValueError:
+            flash("Invalid to date filter ignored.", "warning")
+            to_date_raw = ""
+
+    filtered_records = query.all()
+    total_records = len(filtered_records)
+    present_count = sum(1 for record in filtered_records if record.status == "Present")
+    absent_count = sum(1 for record in filtered_records if record.status == "Absent")
+    leave_count = sum(1 for record in filtered_records if record.status == "Leave")
+    completed_hours = [record.work_hours for record in filtered_records if record.work_hours]
+    avg_work_hours = format_work_hours(sum(completed_hours) / len(completed_hours)) if completed_hours else "-"
+
+    pagination = _paginate(query.order_by(Attendance.date.desc(), User.name.asc()), page)
     return render_template(
         "admin/attendance.html",
         form=form,
@@ -578,6 +620,14 @@ def attendance():
         pagination=pagination,
         status=status,
         q=q,
+        intern_id=intern_id,
+        from_date=from_date_raw,
+        to_date=to_date_raw,
+        total_records=total_records,
+        present_count=present_count,
+        absent_count=absent_count,
+        leave_count=leave_count,
+        avg_work_hours=avg_work_hours,
     )
 
 
@@ -687,12 +737,13 @@ def export_attendance_csv():
                 a.date.isoformat(),
                 a.check_in or "",
                 a.check_out or "",
+                a.work_hours_display if a.work_hours_display != "-" else "",
                 a.status,
             ]
         )
     content, filename = export_csv(
         rows,
-        ["Intern", "Date", "Check In", "Check Out", "Status"],
+        ["Intern", "Date", "Check In", "Check Out", "Working Hours", "Status"],
         "attendance_report",
     )
     return Response(
@@ -801,12 +852,13 @@ def export_attendance_pdf():
                 a.date.strftime("%d-%m-%Y"),
                 a.check_in or "-",
                 a.check_out or "-",
+                a.work_hours_display,
                 a.status,
             ]
         )
     buffer, filename = build_pdf_table(
         "Attendance Report",
-        ["Intern", "Date", "In", "Out", "Status"],
+        ["Intern", "Date", "In", "Out", "Working Hours", "Status"],
         rows,
     )
     return send_file(buffer, as_attachment=True, download_name=filename, mimetype="application/pdf")
@@ -861,3 +913,152 @@ def tasks():
         q=q,
         status=status,
     )
+
+
+# -------------------- Office Locations --------------------
+
+
+@admin_bp.route("/office-locations")
+@login_required
+@role_required("admin")
+def office_locations():
+    locations = OfficeLocation.query.order_by(OfficeLocation.created_at.desc()).all()
+    return render_template("admin/office_locations.html", locations=locations)
+
+
+@admin_bp.route("/office-locations/add", methods=["GET", "POST"])
+@login_required
+@role_required("admin")
+def add_office_location():
+    form = OfficeLocationForm()
+    if form.validate_on_submit():
+        location = OfficeLocation(
+            name=form.name.data.strip(),
+            latitude=float(form.latitude.data),
+            longitude=float(form.longitude.data),
+            radius_meters=form.radius_meters.data,
+            is_active=form.is_active.data,
+        )
+        db.session.add(location)
+        db.session.commit()
+        flash("Office location added successfully.", "success")
+        return redirect(url_for("admin.office_locations"))
+    return render_template("admin/office_location_form.html", form=form, title="Add Office Location")
+
+
+@admin_bp.route("/office-locations/<int:location_id>/edit", methods=["GET", "POST"])
+@login_required
+@role_required("admin")
+def edit_office_location(location_id):
+    location = OfficeLocation.query.get_or_404(location_id)
+    form = OfficeLocationForm(obj=location)
+    if request.method == "GET":
+        form.latitude.data = str(location.latitude)
+        form.longitude.data = str(location.longitude)
+    if form.validate_on_submit():
+        location.name = form.name.data.strip()
+        location.latitude = float(form.latitude.data)
+        location.longitude = float(form.longitude.data)
+        location.radius_meters = form.radius_meters.data
+        location.is_active = form.is_active.data
+        db.session.commit()
+        flash("Office location updated successfully.", "success")
+        return redirect(url_for("admin.office_locations"))
+    return render_template("admin/office_location_form.html", form=form, title="Edit Office Location")
+
+
+@admin_bp.route("/office-locations/<int:location_id>/delete", methods=["POST"])
+@login_required
+@role_required("admin")
+def delete_office_location(location_id):
+    location = OfficeLocation.query.get_or_404(location_id)
+    db.session.delete(location)
+    db.session.commit()
+    flash("Office location deleted successfully.", "success")
+    return redirect(url_for("admin.office_locations"))
+
+
+@admin_bp.route("/office-locations/<int:location_id>/toggle", methods=["POST"])
+@login_required
+@role_required("admin")
+def toggle_office_location(location_id):
+    location = OfficeLocation.query.get_or_404(location_id)
+    location.is_active = not location.is_active
+    db.session.commit()
+    status = "activated" if location.is_active else "deactivated"
+    flash(f"Office location {status} successfully.", "success")
+    return redirect(url_for("admin.office_locations"))
+
+
+# -------------------- Intern Timings --------------------
+
+
+@admin_bp.route("/intern-timings")
+@login_required
+@role_required("admin")
+def intern_timings():
+    page = request.args.get("page", 1, type=int)
+    pagination = _paginate(
+        InternTiming.query.join(Intern).join(User).order_by(User.name),
+        page,
+    )
+    return render_template(
+        "admin/intern_timings.html",
+        timings=pagination.items,
+        pagination=pagination,
+    )
+
+
+@admin_bp.route("/intern-timings/add", methods=["GET", "POST"])
+@login_required
+@role_required("admin")
+def add_intern_timing():
+    form = InternTimingForm()
+    form.intern_id.choices = get_intern_choices()
+    if form.validate_on_submit():
+        timing = InternTiming(
+            intern_id=form.intern_id.data,
+            timing_type=form.timing_type.data,
+            start_time=form.start_time.data.strip() if form.start_time.data else None,
+            end_time=form.end_time.data.strip() if form.end_time.data else None,
+            required_hours=form.required_hours.data,
+            grace_minutes=form.grace_minutes.data,
+        )
+        db.session.add(timing)
+        db.session.commit()
+        flash("Intern timing settings added successfully.", "success")
+        return redirect(url_for("admin.intern_timings"))
+    return render_template("admin/intern_timing_form.html", form=form, title="Add Intern Timing")
+
+
+@admin_bp.route("/intern-timings/<int:timing_id>/edit", methods=["GET", "POST"])
+@login_required
+@role_required("admin")
+def edit_intern_timing(timing_id):
+    timing = InternTiming.query.get_or_404(timing_id)
+    form = InternTimingForm(obj=timing)
+    form.intern_id.choices = get_intern_choices()
+    if request.method == "GET":
+        form.intern_id.data = timing.intern_id
+    if form.validate_on_submit():
+        timing.intern_id = form.intern_id.data
+        timing.timing_type = form.timing_type.data
+        timing.start_time = form.start_time.data.strip() if form.start_time.data else None
+        timing.end_time = form.end_time.data.strip() if form.end_time.data else None
+        timing.required_hours = form.required_hours.data
+        timing.grace_minutes = form.grace_minutes.data
+        db.session.commit()
+        flash("Intern timing settings updated successfully.", "success")
+        return redirect(url_for("admin.intern_timings"))
+    return render_template("admin/intern_timing_form.html", form=form, title="Edit Intern Timing")
+
+
+@admin_bp.route("/intern-timings/<int:timing_id>/delete", methods=["POST"])
+@login_required
+@role_required("admin")
+def delete_intern_timing(timing_id):
+    timing = InternTiming.query.get_or_404(timing_id)
+    db.session.delete(timing)
+    db.session.commit()
+    flash("Intern timing settings deleted successfully.", "success")
+    return redirect(url_for("admin.intern_timings"))

@@ -27,6 +27,8 @@
         <a class="nav-link {% if request.endpoint in ['admin.projects', 'admin.add_project', 'admin.edit_project'] %}active{% endif %}" href="{{ url_for('admin.projects') }}"><i class="bi bi-kanban"></i> Projects</a>
         <a class="nav-link {% if request.endpoint == 'admin.assignments' %}active{% endif %}" href="{{ url_for('admin.assignments') }}"><i class="bi bi-link-45deg"></i> Assignments</a>
         <a class="nav-link {% if request.endpoint == 'admin.attendance' %}active{% endif %}" href="{{ url_for('admin.attendance') }}"><i class="bi bi-calendar-check"></i> Attendance</a>
+        <a class="nav-link {% if request.endpoint in ['admin.office_locations', 'admin.add_office_location', 'admin.edit_office_location'] %}active{% endif %}" href="{{ url_for('admin.office_locations') }}"><i class="bi bi-geo-alt"></i> Office Locations</a>
+        <a class="nav-link {% if request.endpoint in ['admin.intern_timings', 'admin.add_intern_timing', 'admin.edit_intern_timing'] %}active{% endif %}" href="{{ url_for('admin.intern_timings') }}"><i class="bi bi-clock"></i> Intern Timings</a>
         <a class="nav-link {% if request.endpoint == 'admin.tasks' %}active{% endif %}" href="{{ url_for('admin.tasks') }}"><i class="bi bi-list-task"></i> Tasks</a>
         <a class="nav-link {% if request.endpoint == 'admin.feedback' %}active{% endif %}" href="{{ url_for('admin.feedback') }}"><i class="bi bi-chat-square-quote"></i> Feedback</a>
         <a class="nav-link {% if request.endpoint == 'admin.certificates' %}active{% endif %}" href="{{ url_for('admin.certificates') }}"><i class="bi bi-award"></i> Certificates</a>

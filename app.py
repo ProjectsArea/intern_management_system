@@ -5,7 +5,20 @@ from flask_login import current_user
 
 from config import Config
 from extensions import csrf, db, login_manager
-from models import User
+from models import (
+    Assignment,
+    Attendance,
+    Certificate,
+    Feedback,
+    Intern,
+    InternTiming,
+    Mentor,
+    OfficeLocation,
+    Project,
+    Submission,
+    Task,
+    User,
+)
 from routes.admin import admin_bp
 from routes.auth import auth_bp
 from routes.intern import intern_bp

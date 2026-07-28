@@ -2,6 +2,7 @@
 {% from "macros.html" import render_field, render_select, pagination_widget, status_badge %}
 {% block title %}Attendance{% endblock %}
 {% block page_title %}Attendance{% endblock %}
+{% block page_subtitle %}Review intern attendance with filters and daily work-hour summaries{% endblock %}
 
 {% block content %}
 <div class="row g-3">
@@ -20,11 +21,60 @@
     </div>
   </div>
   <div class="col-lg-8">
+    <div class="row g-3 mb-3">
+      <div class="col-sm-6 col-xl-3">
+        <div class="stat-card">
+          <div class="stat-label">Filtered Records</div>
+          <div class="stat-value">{{ total_records }}</div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-xl-3">
+        <div class="stat-card">
+          <div class="stat-label">Present Days</div>
+          <div class="stat-value">{{ present_count }}</div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-xl-3">
+        <div class="stat-card">
+          <div class="stat-label">Absent / Leave</div>
+          <div class="stat-value">{{ absent_count + leave_count }}</div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-xl-3">
+        <div class="stat-card">
+          <div class="stat-label">Avg Work Hours</div>
+          <div class="stat-value">{{ avg_work_hours }}</div>
+        </div>
+      </div>
+    </div>
     <div class="panel">
       <div class="panel-title">Attendance Records</div>
+      <form class="row g-2 mb-3 align-items-end" method="GET">
+        <div class="col-md-4"><input class="form-control form-control-sm" name="q" value="{{ q }}" placeholder="Search intern name"></div>
+        <div class="col-md-3">
+          <select class="form-select form-select-sm" name="intern_id">
+            <option value="">All Interns</option>
+            {% for value, label in form.intern_id.choices %}
+            <option value="{{ value }}" {% if intern_id == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-2">
+          <select class="form-select form-select-sm" name="status">
+            <option value="">All</option>
+            {% for s in ['Present','Absent','Leave'] %}
+            <option value="{{ s }}" {% if status == s %}selected{% endif %}>{{ s }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-3"><input class="form-control form-control-sm" type="date" name="from_date" value="{{ from_date }}"></div>
+        <div class="col-md-3"><input class="form-control form-control-sm" type="date" name="to_date" value="{{ to_date }}"></div>
+        <div class="col-auto"><button class="btn btn-sm btn-primary">Apply</button></div>
+        <div class="col-auto"><a class="btn btn-sm btn-outline-secondary" href="{{ url_for('mentor.attendance') }}">Clear</a></div>
+      </form>
       <div class="table-responsive">
         <table class="table table-hover align-middle">
-          <thead><tr><th>Intern</th><th>Date</th><th>In</th><th>Out</th><th>Status</th></tr></thead>
+          <thead><tr><th>Intern</th><th>Date</th><th>In</th><th>Out</th><th>Working Hours</th><th>Status</th></tr></thead>
           <tbody>
             {% for r in records %}
             <tr>
@@ -32,10 +82,11 @@
               <td>{{ r.date.strftime('%d %b %Y') }}</td>
               <td>{{ r.check_in or '-' }}</td>
               <td>{{ r.check_out or '-' }}</td>
+              <td>{{ r.work_hours_display }}</td>
               <td>{{ status_badge(r.status) }}</td>
             </tr>
             {% else %}
-            <tr><td colspan="5" class="text-center text-muted py-4">No records found.</td></tr>
+            <tr><td colspan="6" class="text-center text-muted py-4">No records found.</td></tr>
             {% endfor %}
           </tbody>
         </table>

@@ -228,3 +228,38 @@ class ProfileForm(FlaskForm):
 class SearchForm(FlaskForm):
     q = StringField("Search", validators=[Optional(), Length(max=120)])
     submit = SubmitField("Search")
+
+
+class OfficeLocationForm(FlaskForm):
+    name = StringField("Location Name", validators=[DataRequired(), Length(max=120)])
+    latitude = StringField("Latitude", validators=[DataRequired()])
+    longitude = StringField("Longitude", validators=[DataRequired()])
+    radius_meters = IntegerField("Radius (meters)", validators=[DataRequired(), NumberRange(min=10, max=1000)])
+    is_active = SelectField("Active", choices=[(True, "Yes"), (False, "No")], coerce=bool)
+    submit = SubmitField("Save Location")
+
+
+class InternTimingForm(FlaskForm):
+    intern_id = SelectField("Intern", coerce=int, validators=[DataRequired()])
+    timing_type = SelectField(
+        "Timing Type",
+        choices=[("fixed", "Fixed Timing"), ("flexible", "Flexible Timing")],
+        validators=[DataRequired()],
+    )
+    start_time = StringField("Start Time (HH:MM)", validators=[Optional(), Regexp(r"^([01]?[0-9]|2[0-3]):[0-5][0-9]$", message="Use HH:MM format")])
+    end_time = StringField("End Time (HH:MM)", validators=[Optional(), Regexp(r"^([01]?[0-9]|2[0-3]):[0-5][0-9]$", message="Use HH:MM format")])
+    required_hours = IntegerField("Required Hours (for flexible)", validators=[Optional(), NumberRange(min=1, max=24)])
+    grace_minutes = IntegerField("Grace Minutes", validators=[DataRequired(), NumberRange(min=0, max=60)])
+    submit = SubmitField("Save Timing Settings")
+
+
+class CheckInForm(FlaskForm):
+    latitude = StringField("Latitude", validators=[DataRequired()])
+    longitude = StringField("Longitude", validators=[DataRequired()])
+    submit = SubmitField("Check In")
+
+
+class CheckOutForm(FlaskForm):
+    latitude = StringField("Latitude", validators=[DataRequired()])
+    longitude = StringField("Longitude", validators=[DataRequired()])
+    submit = SubmitField("Check Out")

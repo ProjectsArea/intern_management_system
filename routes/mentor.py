@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from flask import (
     Blueprint,
     current_app,
@@ -15,6 +17,8 @@ from forms import AttendanceForm, FeedbackForm, TaskForm
 from models import Attendance, Feedback, Intern, Mentor, Submission, Task, User
 from utils import (
     attendance_percentage,
+    format_work_hours,
+    get_trusted_date,
     get_intern_choices,
     role_required,
 )
@@ -216,6 +220,15 @@ def attendance():
     form = AttendanceForm()
     form.intern_id.choices = get_intern_choices(mentor_id=mentor.id)
     page = request.args.get("page", 1, type=int)
+    status = request.args.get("status", "").strip()
+    q = request.args.get("q", "").strip()
+    intern_id = request.args.get("intern_id", type=int)
+    from_date_raw = request.args.get("from_date", "").strip()
+    to_date_raw = request.args.get("to_date", "").strip()
+    if not any([status, q, intern_id, from_date_raw, to_date_raw]):
+        today_str = get_trusted_date().isoformat()
+        from_date_raw = today_str
+        to_date_raw = today_str
 
     if form.validate_on_submit():
         intern = Intern.query.filter_by(id=form.intern_id.data, mentor_id=mentor.id).first()
@@ -248,15 +261,54 @@ def attendance():
         return redirect(url_for("mentor.attendance"))
 
     intern_ids = [i.id for i in Intern.query.filter_by(mentor_id=mentor.id).all()]
-    query = Attendance.query.filter(Attendance.intern_id.in_(intern_ids or [-1])).order_by(
-        Attendance.date.desc()
+    query = Attendance.query.join(Intern).join(User).filter(
+        Attendance.intern_id.in_(intern_ids or [-1])
     )
-    pagination = _paginate(query, page)
+    if status:
+        query = query.filter(Attendance.status == status)
+    if q:
+        query = query.filter(User.name.ilike(f"%{q}%"))
+    if intern_id:
+        query = query.filter(Attendance.intern_id == intern_id)
+
+    if from_date_raw:
+        try:
+            query = query.filter(Attendance.date >= datetime.strptime(from_date_raw, "%Y-%m-%d").date())
+        except ValueError:
+            flash("Invalid from date filter ignored.", "warning")
+            from_date_raw = ""
+
+    if to_date_raw:
+        try:
+            query = query.filter(Attendance.date <= datetime.strptime(to_date_raw, "%Y-%m-%d").date())
+        except ValueError:
+            flash("Invalid to date filter ignored.", "warning")
+            to_date_raw = ""
+
+    filtered_records = query.all()
+    total_records = len(filtered_records)
+    present_count = sum(1 for record in filtered_records if record.status == "Present")
+    absent_count = sum(1 for record in filtered_records if record.status == "Absent")
+    leave_count = sum(1 for record in filtered_records if record.status == "Leave")
+    completed_hours = [record.work_hours for record in filtered_records if record.work_hours]
+    avg_work_hours = format_work_hours(sum(completed_hours) / len(completed_hours)) if completed_hours else "-"
+
+    pagination = _paginate(query.order_by(Attendance.date.desc(), User.name.asc()), page)
     return render_template(
         "mentor/attendance.html",
         form=form,
         records=pagination.items,
         pagination=pagination,
+        status=status,
+        q=q,
+        intern_id=intern_id,
+        from_date=from_date_raw,
+        to_date=to_date_raw,
+        total_records=total_records,
+        present_count=present_count,
+        absent_count=absent_count,
+        leave_count=leave_count,
+        avg_work_hours=avg_work_hours,
     )
 
 

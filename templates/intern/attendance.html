@@ -2,27 +2,127 @@
 {% from "macros.html" import pagination_widget, status_badge %}
 {% block title %}Attendance{% endblock %}
 {% block page_title %}My Attendance{% endblock %}
-{% block page_subtitle %}Current attendance rate: {{ attendance_pct }}%{% endblock %}
+{% block page_subtitle %}Current attendance rate: {{ attendance_pct }}% · Official time: {{ server_now.strftime('%d %b %Y, %H:%M') }}{% endblock %}
 
 {% block content %}
+<div class="row g-3 mb-3">
+  <div class="col-md-6">
+    <div class="panel">
+      <div class="panel-title">Check In</div>
+      <form method="POST" action="{{ url_for('intern.check_in') }}" id="checkInForm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="latitude" id="checkInLat">
+        <input type="hidden" name="longitude" id="checkInLon">
+        <div class="mb-3">
+          <button type="button" class="btn btn-primary w-100" onclick="getLocationAndCheckIn()">
+            <i class="bi bi-geo-alt me-2"></i>Check In from Current Location
+          </button>
+        </div>
+        <div id="checkInStatus" class="small text-muted"></div>
+      </form>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="panel">
+      <div class="panel-title">Check Out</div>
+      <form method="POST" action="{{ url_for('intern.check_out') }}" id="checkOutForm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="latitude" id="checkOutLat">
+        <input type="hidden" name="longitude" id="checkOutLon">
+        <div class="mb-3">
+          <button type="button" class="btn btn-success w-100" onclick="getLocationAndCheckOut()">
+            <i class="bi bi-geo-alt me-2"></i>Check Out from Current Location
+          </button>
+        </div>
+        <div id="checkOutStatus" class="small text-muted"></div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <div class="panel">
   <div class="table-responsive">
     <table class="table table-hover align-middle">
-      <thead><tr><th>Date</th><th>Check In</th><th>Check Out</th><th>Status</th></tr></thead>
+      <thead><tr><th>Date</th><th>Check In</th><th>Check Out</th><th>Working Hours</th><th>Status</th><th>Late</th><th>Location Verified</th></tr></thead>
       <tbody>
         {% for r in records %}
         <tr>
           <td>{{ r.date.strftime('%d %b %Y') }}</td>
           <td>{{ r.check_in or '-' }}</td>
           <td>{{ r.check_out or '-' }}</td>
+          <td>{{ r.work_hours_display }}</td>
           <td>{{ status_badge(r.status) }}</td>
+          <td>
+            {% if r.is_late %}
+              <span class="badge bg-warning">Late</span>
+            {% else %}
+              <span class="text-muted">-</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if r.location_verified %}
+              <span class="badge bg-success"><i class="bi bi-check-circle"></i></span>
+            {% else %}
+              <span class="badge bg-secondary"><i class="bi bi-dash-circle"></i></span>
+            {% endif %}
+          </td>
         </tr>
         {% else %}
-        <tr><td colspan="4" class="text-center text-muted py-4">No attendance records yet.</td></tr>
+        <tr><td colspan="7" class="text-center text-muted py-4">No attendance records yet.</td></tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
   {{ pagination_widget(pagination, 'intern.attendance') }}
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function getLocationAndCheckIn() {
+  const statusDiv = document.getElementById('checkInStatus');
+  statusDiv.textContent = 'Getting your location...';
+  
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      function(position) {
+        document.getElementById('checkInLat').value = position.coords.latitude;
+        document.getElementById('checkInLon').value = position.coords.longitude;
+        statusDiv.textContent = `Location: ${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`;
+        document.getElementById('checkInForm').submit();
+      },
+      function(error) {
+        statusDiv.textContent = 'Error getting location: ' + error.message;
+        statusDiv.classList.add('text-danger');
+      }
+    );
+  } else {
+    statusDiv.textContent = 'Geolocation is not supported by your browser';
+    statusDiv.classList.add('text-danger');
+  }
+}
+
+function getLocationAndCheckOut() {
+  const statusDiv = document.getElementById('checkOutStatus');
+  statusDiv.textContent = 'Getting your location...';
+  
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      function(position) {
+        document.getElementById('checkOutLat').value = position.coords.latitude;
+        document.getElementById('checkOutLon').value = position.coords.longitude;
+        statusDiv.textContent = `Location: ${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`;
+        document.getElementById('checkOutForm').submit();
+      },
+      function(error) {
+        statusDiv.textContent = 'Error getting location: ' + error.message;
+        statusDiv.classList.add('text-danger');
+      }
+    );
+  } else {
+    statusDiv.textContent = 'Geolocation is not supported by your browser';
+    statusDiv.classList.add('text-danger');
+  }
+}
+</script>
 {% endblock %}
