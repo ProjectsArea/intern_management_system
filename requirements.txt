@@ -8,3 +8,4 @@ Werkzeug==3.0.3
 reportlab==4.2.2
 Pillow==10.4.0
 python-dateutil==2.9.0.post0
+gunicorn==22.0.0
